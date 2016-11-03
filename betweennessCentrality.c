@@ -73,7 +73,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   /***********************************/
   /*** MAIN LOOP *********************/
   /***********************************/
-  for (p=0; p<n; p++) {
+  cilk_for (p=0; p<n; p++) {
 
 		i = Srcs[p];
 		if (G->firstnbr[i+1] - G->firstnbr[i] == 0) {
