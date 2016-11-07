@@ -4,6 +4,29 @@
 
 #define MAX_THREADS 320
 
+
+int getArr(int *bmp){
+	int i = 0;
+	//lock
+	for(i = 0; i < MAX_THREADS; i++){
+		if (bmp[i] == 0){
+			bmp[i] = 1;
+			index = i;
+			//unlock
+			return i;
+		}	
+	}
+	//unlock
+	return -1;
+}
+
+void releaseArr(int *bmp, int index){
+	//lock
+	bmp[index] = 0;
+	//unlock
+}
+
+
 double betweennessCentrality_parallel(graph* G, double* BC) {
   int *S; 	/* stack of vertices in order of distance from s. Also, implicitly, the BFS queue */
   plist* P;  	/* predecessors of vertex v on shortest paths from s */
@@ -62,7 +85,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 	
   start = (int *) malloc(n*sizeof(int));
   end = (int *) malloc(n*sizeof(int));
-
+  int *bmp = (int) malloc(MAXTHREADS * sizeof(int));
   num_traversals = 0;
   myCount = 0;
 
@@ -73,7 +96,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   /***********************************/
   /*** MAIN LOOP *********************/
   /***********************************/
-  cilk_for (p=0; p<n; p++) {
+  for (p=0; p<n; p++) {
 
 		i = Srcs[p];
 		if (G->firstnbr[i+1] - G->firstnbr[i] == 0) {
