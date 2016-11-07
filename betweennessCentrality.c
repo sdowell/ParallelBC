@@ -10,9 +10,7 @@ pthread_mutex_t arr_mutex;
 int getArr(int *bmp){
 	int i = 0;
 	//lock
-	printf("acquiring lock\n");
 	pthread_mutex_lock(&arr_mutex);
-	printf("lock acquired\n");
 	for(i = 0; i < MAX_THREADS; i++){
 		if (bmp[i] == 0){
 			bmp[i] = 1;
@@ -69,8 +67,8 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   /* Initialize predecessor lists */
   /* Number of predecessors of a vertex is at most its in-degree. */
   P0 = (plist *) calloc(MAX_THREADS *n, sizeof(plist));
-  for(i = 0; i < MAX_THREADS; i++){
-  plist* P = &P0[n * i];
+  //for(j = 0; j < MAX_THREADS; j++){
+  //plist* P = &P0[n * i];
   in_degree = (int *) calloc(n+1, sizeof(int));
   numEdges = (int *) malloc((n+1)*sizeof(int));
   for (i=0; i<m; i++) {
@@ -78,15 +76,17 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
     in_degree[v]++;
   }
   prefix_sums(in_degree, numEdges, n);
+  for(j = 0; j < MAX_THREADS; j++){
+  plist* P = &P0[n * j];
   pListMem = (int *) malloc(m*sizeof(int));
   for (i=0; i<n; i++) {
     P[i].list = pListMem + numEdges[i];
     P[i].degree = in_degree[i];
     P[i].count = 0;
   }
+  }
   free(in_degree);
   free(numEdges);
-  }
 	
   /* Allocate shared memory */ 
   S0   = (int *) malloc(MAX_THREADS *n*sizeof(int));
@@ -99,7 +99,10 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   int *bmp = (int *) malloc(MAX_THREADS * sizeof(int));
   num_traversals = 0;
   myCount = 0;
-
+  for(i = 0; i < MAX_THREADS; i++){
+    bmp[i] = 0;
+  }
+  printf("\n");
   for (i=0; i<n * MAX_THREADS; i++) {
     d0[i] = -1;
   }
@@ -107,7 +110,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   /***********************************/
   /*** MAIN LOOP *********************/
   /***********************************/
-  for (p=0; p<n; p++) {
+  cilk_for (p=0; p<n; p++) {
 		int offset = getArr(bmp) * n;
 		int *S = &S0[offset]; 	/* stack of vertices in order of distance from s. Also, implicitly, the BFS queue */
 	  	plist* P = &P0[offset];  	/* predecessors of vertex v on shortest paths from s */
@@ -116,19 +119,20 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   		double* del = &del0[offset]; 	/* dependency of vertices */	
 	  	int* start = &start0[offset];
 	  	int* end = &end0[offset];
-	  
-	  	int count, phase_num;
+	  	int myCount, count, phase_num, w, v, vert;
 		i = Srcs[p];
 		if (G->firstnbr[i+1] - G->firstnbr[i] == 0) {
 			continue;
-		} else {
-			num_traversals++;
 		}
 
+		pthread_mutex_lock(&arr_mutex);
+		num_traversals++;
 		if (num_traversals == numV + 1) {
-			break;
+			pthread_mutex_unlock(&arr_mutex);
+			printf("exceeded numV\n");
+			continue;
 		}
-		
+		pthread_mutex_unlock(&arr_mutex);
 		sig[i] = 1;
 		d[i] = 0;
 		S[0] = i;
@@ -137,7 +141,6 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 		
 		count = 1;
 		phase_num = 0;
-
 		while (end[phase_num] - start[phase_num] > 0) {
 				myCount = 0;
 				// BFS to destination, calculate distances, 
@@ -155,7 +158,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 								S[end[phase_num] + myCount] = w;
 								myCount++;
 								d[w] = d[v] + 1; 
-								sig[w] = sig[v]; 
+								sig[w] = sig[v];
 								P[w].list[P[w].count++] = v;
 							} else if (d[w] == d[v] + 1) {
 								sig[w] += sig[v]; 
@@ -176,7 +179,6 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 		}
  	
 		phase_num--;
-
 		while (phase_num > 0) {
 			for (j=start[phase_num]; j<end[phase_num]; j++) {
 				w = S[j];
@@ -184,19 +186,20 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 					v = P[w].list[k];
 					del[v] = del[v] + sig[v]*(1+del[w])/sig[w];
 				}
+				pthread_mutex_lock(&arr_mutex);
 				BC[w] += del[w];
+				pthread_mutex_unlock(&arr_mutex);
 			}
 
 			phase_num--;
-		}
-		
+		}	
 		for (j=0; j<count; j++) {
 			w = S[j];
 			d[w] = -1;
 			del[w] = 0;
 			P[w].count = 0;
 		}
-		//releaseArr(bmp, offset / n);
+		releaseArr(bmp, offset / n);
 	    }
   /***********************************/
   /*** END OF MAIN LOOP **************/
