@@ -1,28 +1,34 @@
 #include "defs.h"
 #include <cilk/cilk.h>
 #include <cilk/reducer_opadd.h>
+#include <pthread.h>
 
 #define MAX_THREADS 320
 
+pthread_mutex_t arr_mutex;
 
 int getArr(int *bmp){
 	int i = 0;
 	//lock
+	pthread_mutex_lock(&arr_mutex);
 	for(i = 0; i < MAX_THREADS; i++){
 		if (bmp[i] == 0){
 			bmp[i] = 1;
-			index = i;
 			//unlock
+			pthread_mutex_unlock(&arr_mutex);
 			return i;
 		}	
 	}
 	//unlock
+	pthread_mutex_unlock(&arr_mutex);
 	return -1;
 }
 
 void releaseArr(int *bmp, int index){
 	//lock
+	pthread_mutex_lock(&arr_mutex);
 	bmp[index] = 0;
+	pthread_mutex_unlock(&arr_mutex);
 	//unlock
 }
 
@@ -85,7 +91,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 	
   start = (int *) malloc(n*sizeof(int));
   end = (int *) malloc(n*sizeof(int));
-  int *bmp = (int) malloc(MAXTHREADS * sizeof(int));
+  int *bmp = (int *) malloc(MAX_THREADS * sizeof(int));
   num_traversals = 0;
   myCount = 0;
 
@@ -97,7 +103,8 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   /*** MAIN LOOP *********************/
   /***********************************/
   for (p=0; p<n; p++) {
-
+		int offset = getArr(bmp) * n;
+		
 		i = Srcs[p];
 		if (G->firstnbr[i+1] - G->firstnbr[i] == 0) {
 			continue;
@@ -176,6 +183,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 			del[w] = 0;
 			P[w].count = 0;
 		}
+		releaseArr(bmp, offset / n);
 	    }
   /***********************************/
   /*** END OF MAIN LOOP **************/
@@ -343,7 +351,7 @@ double betweennessCentrality_serial(graph* G, double* BC) {
 
 			phase_num--;
 		}
-		
+
 		for (j=0; j<count; j++) {
 			w = S[j];
 			d[w] = -1;
