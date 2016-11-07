@@ -94,7 +94,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 	
   start0 = (int *) malloc(MAX_THREADS *n*sizeof(int));
   end0 = (int *) malloc(MAX_THREADS *n*sizeof(int));
-  //int *bmp = (int *) malloc(MAX_THREADS * sizeof(int));
+  int *bmp = (int *) malloc(MAX_THREADS * sizeof(int));
   num_traversals = 0;
   myCount = 0;
 
