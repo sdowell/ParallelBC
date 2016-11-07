@@ -3,7 +3,7 @@
 #include <cilk/reducer_opadd.h>
 #include <pthread.h>
 
-#define MAX_THREADS 320
+#define MAX_THREADS 48
 
 pthread_mutex_t arr_mutex;
 
@@ -66,7 +66,9 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 
   /* Initialize predecessor lists */
   /* Number of predecessors of a vertex is at most its in-degree. */
-  P = (plist *) calloc(n, sizeof(plist));
+  P0 = (plist *) calloc(MAX_THREADS *n, sizeof(plist));
+  for(i = 0; i < MAX_THREADS; i++){
+  plist* P = &P0[n * i];
   in_degree = (int *) calloc(n+1, sizeof(int));
   numEdges = (int *) malloc((n+1)*sizeof(int));
   for (i=0; i<m; i++) {
@@ -82,16 +84,17 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   }
   free(in_degree);
   free(numEdges);
+  }
 	
   /* Allocate shared memory */ 
-  S   = (int *) malloc(n*sizeof(int));
-  sig = (double *) malloc(n*sizeof(double));
-  d   = (int *) malloc(n*sizeof(int));
-  del = (double *) calloc(n, sizeof(double));
+  S0   = (int *) malloc(MAX_THREADS *n*sizeof(int));
+  sig0 = (double *) malloc(MAX_THREADS *n*sizeof(double));
+  d0   = (int *) malloc(MAX_THREADS *n*sizeof(int));
+  del0 = (double *) calloc(MAX_THREADS *n, sizeof(double));
 	
-  start = (int *) malloc(n*sizeof(int));
-  end = (int *) malloc(n*sizeof(int));
-  int *bmp = (int *) malloc(MAX_THREADS * sizeof(int));
+  start0 = (int *) malloc(MAX_THREADS *n*sizeof(int));
+  end0 = (int *) malloc(MAX_THREADS *n*sizeof(int));
+  //int *bmp = (int *) malloc(MAX_THREADS * sizeof(int));
   num_traversals = 0;
   myCount = 0;
 
@@ -104,7 +107,15 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   /***********************************/
   for (p=0; p<n; p++) {
 		int offset = getArr(bmp) * n;
-		
+		int *S = &S0[offset]; 	/* stack of vertices in order of distance from s. Also, implicitly, the BFS queue */
+	  	plist* P = &P0[offset];  	/* predecessors of vertex v on shortest paths from s */
+  		double* sig = &sig0[offset]; 	/* No. of shortest paths */
+  		int* d = &d0[offset]; 	/* Length of the shortest path between every pair */
+  		double* del = &del0[offset]; 	/* dependency of vertices */	
+	  	int* start = &start0[offset];
+	  	int* end = &end0[offset];
+	  
+	  	int count, phase_num;
 		i = Srcs[p];
 		if (G->firstnbr[i+1] - G->firstnbr[i] == 0) {
 			continue;
@@ -183,7 +194,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 			del[w] = 0;
 			P[w].count = 0;
 		}
-		releaseArr(bmp, offset / n);
+		//releaseArr(bmp, offset / n);
 	    }
   /***********************************/
   /*** END OF MAIN LOOP **************/
