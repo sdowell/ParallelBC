@@ -202,14 +202,14 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
  
 
 	
-  free(S);
+  free(S0);
   free(pListMem);
-  free(P);
-  free(sig);
-  free(d);
-  free(del);
-  free(start);
-  free(end);
+  free(P0);
+  free(sig0);
+  free(d0);
+  free(del0);
+  free(start0);
+  free(end0);
   elapsed_time = get_seconds() - elapsed_time;
   free(Srcs);
 
