@@ -10,7 +10,9 @@ pthread_mutex_t arr_mutex;
 int getArr(int *bmp){
 	int i = 0;
 	//lock
+	printf("acquiring lock\n");
 	pthread_mutex_lock(&arr_mutex);
+	printf("lock acquired\n");
 	for(i = 0; i < MAX_THREADS; i++){
 		if (bmp[i] == 0){
 			bmp[i] = 1;
