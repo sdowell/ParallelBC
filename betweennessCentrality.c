@@ -45,9 +45,8 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   int *start0, *end0;
   int seed = 2387;
   double elapsed_time;
-  int i, j, k, p, count, myCount;
-  int v, w, vert;
-  int numV, num_traversals, n, m, phase_num;
+  int i, x, p;
+  int numV, num_traversals, n, m;
 
   /* numV: no. of vertices to run BFS from = 2^K4approx */
   //numV = 1<<K4approx;
@@ -72,12 +71,12 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   in_degree = (int *) calloc(n+1, sizeof(int));
   numEdges = (int *) malloc((n+1)*sizeof(int));
   for (i=0; i<m; i++) {
-    v = G->nbr[i];
-    in_degree[v]++;
+    //v = G->nbr[i];
+    in_degree[G->nbr[i]]++;
   }
   prefix_sums(in_degree, numEdges, n);
-  for(j = 0; j < MAX_THREADS; j++){
-  plist* P = &P0[n * j];
+  for(x = 0; x < MAX_THREADS; x++){
+  plist* P = &P0[n * x];
   pListMem = (int *) malloc(m*sizeof(int));
   for (i=0; i<n; i++) {
     P[i].list = pListMem + numEdges[i];
@@ -98,7 +97,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   end0 = (int *) malloc(MAX_THREADS *n*sizeof(int));
   int *bmp = (int *) malloc(MAX_THREADS * sizeof(int));
   num_traversals = 0;
-  myCount = 0;
+  //myCount = 0;
   for(i = 0; i < MAX_THREADS; i++){
     bmp[i] = 0;
   }
@@ -119,7 +118,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   		double* del = &del0[offset]; 	/* dependency of vertices */	
 	  	int* start = &start0[offset];
 	  	int* end = &end0[offset];
-	  	int myCount, count, phase_num, w, v, vert;
+	  	int i, j, k, myCount, count, phase_num, w, v;
 		i = Srcs[p];
 		if (G->firstnbr[i+1] - G->firstnbr[i] == 0) {
 			continue;
