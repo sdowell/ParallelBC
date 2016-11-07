@@ -60,6 +60,14 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
     printf("\n mutex init failed\n");
     return 1;
   }
+  pthread_mutex_t *bc_mutex;
+  bc_mutex = (pthread_mutex_t *) malloc(n * sizeof(pthread_mutex_t));
+  for(i=0; i<n; i++){
+    if (pthread_mutex_init(&bc_mutex[i], NULL) != 0){
+      printf("\n mutex init failed\n");
+      return 1;
+    }
+  }
   /* numV: no. of vertices to run BFS from = 2^K4approx */
   //numV = 1<<K4approx;
   n = G->nv;
@@ -197,9 +205,9 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 					v = P[w].list[k];
 					del[v] = del[v] + sig[v]*(1+del[w])/sig[w];
 				}
-				pthread_mutex_lock(&arr_mutex);
+				pthread_mutex_lock(&bc_mutex[w]);
 				BC[w] += del[w];
-				pthread_mutex_unlock(&arr_mutex);
+				pthread_mutex_unlock(&bc_mutex[w]);
 			}
 
 			phase_num--;
@@ -217,7 +225,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   /***********************************/
  
 
-	
+  free(bc_mutex);	
   free(S0);
   free(pListMem);
   free(P0);
