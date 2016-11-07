@@ -34,15 +34,15 @@ void releaseArr(int *bmp, int index){
 
 
 double betweennessCentrality_parallel(graph* G, double* BC) {
-  int *S; 	/* stack of vertices in order of distance from s. Also, implicitly, the BFS queue */
-  plist* P;  	/* predecessors of vertex v on shortest paths from s */
-  double* sig; 	/* No. of shortest paths */
-  int* d; 	/* Length of the shortest path between every pair */
-  double* del; 	/* dependency of vertices */
+  int *S0; 	/* stack of vertices in order of distance from s. Also, implicitly, the BFS queue */
+  plist* P0;  	/* predecessors of vertex v on shortest paths from s */
+  double* sig0; 	/* No. of shortest paths */
+  int* d0; 	/* Length of the shortest path between every pair */
+  double* del0; 	/* dependency of vertices */
   int *in_degree, *numEdges;
   int *pListMem;	
   int* Srcs; 
-  int *start, *end;
+  int *start0, *end0;
   int seed = 2387;
   double elapsed_time;
   int i, j, k, p, count, myCount;
