@@ -6,6 +6,7 @@
 #define MAX_THREADS 48
 
 pthread_mutex_t arr_mutex;
+pthread_mutex_t trav_mutex;
 
 int getArr(int *bmp){
 	int i = 0;
@@ -48,6 +49,17 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   int i, x, p;
   int numV, num_traversals, n, m;
 
+	
+  if (pthread_mutex_init(&arr_mutex, NULL) != 0)
+  {
+    printf("\n mutex init failed\n");
+    return 1;
+  }
+  if (pthread_mutex_init(&trav_mutex, NULL) != 0)
+  {
+    printf("\n mutex init failed\n");
+    return 1;
+  }
   /* numV: no. of vertices to run BFS from = 2^K4approx */
   //numV = 1<<K4approx;
   n = G->nv;
@@ -124,14 +136,14 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 			continue;
 		}
 
-		pthread_mutex_lock(&arr_mutex);
+		pthread_mutex_lock(&trav_mutex);
 		num_traversals++;
 		if (num_traversals == numV + 1) {
-			pthread_mutex_unlock(&arr_mutex);
+			pthread_mutex_unlock(&trav_mutex);
 			printf("exceeded numV\n");
 			continue;
 		}
-		pthread_mutex_unlock(&arr_mutex);
+		pthread_mutex_unlock(&trav_mutex);
 		sig[i] = 1;
 		d[i] = 0;
 		S[0] = i;
