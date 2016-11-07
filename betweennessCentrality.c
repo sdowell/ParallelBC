@@ -98,8 +98,8 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   num_traversals = 0;
   myCount = 0;
 
-  for (i=0; i<n; i++) {
-    d[i] = -1;
+  for (i=0; i<n * MAX_THREADS; i++) {
+    d0[i] = -1;
   }
 	
   /***********************************/
