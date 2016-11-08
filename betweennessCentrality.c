@@ -1,5 +1,6 @@
 #include "defs.h"
 #include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
 #include <cilk/reducer_opadd.h>
 #include <pthread.h>
 
@@ -50,8 +51,11 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   int i, x, p;
   int numV, num_traversals, n, m;
 
+  
+
+
   fprintf(stderr, "Initializing mutexes\n");	
-  if (pthread_mutex_init(&arr_mutex, NULL) != 0)
+/*  if (pthread_mutex_init(&arr_mutex, NULL) != 0)
   {
     printf("\n mutex init failed\n");
     return 1;
@@ -60,7 +64,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   {
     printf("\n mutex init failed\n");
     return 1;
-  }
+  } */
   pthread_mutex_t *bc_mutex;
   bc_mutex = (pthread_mutex_t *) malloc(n * sizeof(pthread_mutex_t));
   for(i=0; i<n; i++){
@@ -131,7 +135,9 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   /*** MAIN LOOP *********************/
   /***********************************/
   cilk_for (p=0; p<n; p++) {
-		int offset = getArr(bmp) * n;
+		//fprintf(stderr, "Cilk thread: %d\n", __cilkrts_get_worker_number());
+		//int offset = getArr(bmp) * n;
+		int offset = __cilkrts_get_worker_number() * n;
 		int *S = &S0[offset]; 	/* stack of vertices in order of distance from s. Also, implicitly, the BFS queue */
 	  	plist* P = &P0[offset];  	/* predecessors of vertex v on shortest paths from s */
   		double* sig = &sig0[offset]; 	/* No. of shortest paths */
@@ -143,20 +149,20 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 		i = Srcs[p];
 		if (G->firstnbr[i+1] - G->firstnbr[i] == 0) {
 			fprintf(stderr, "Vertex has no neighbors\n");
-			releaseArr(bmp, offset / n);
+			//releaseArr(bmp, offset / n);
 			continue;
 		}
-
+/*
 		pthread_mutex_lock(&trav_mutex);
 		num_traversals++;
 		if (num_traversals == numV + 1) {
 			pthread_mutex_unlock(&trav_mutex);
-			releaseArr(bmp, offset / n);
+			//releaseArr(bmp, offset / n);
 			printf("exceeded numV\n");
 			continue;
 		}
 		pthread_mutex_unlock(&trav_mutex);
-		sig[i] = 1;
+*/		sig[i] = 1;
 		d[i] = 0;
 		S[0] = i;
 		start[0] = 0;
@@ -222,7 +228,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 			del[w] = 0;
 			P[w].count = 0;
 		}
-		releaseArr(bmp, offset / n);
+		//releaseArr(bmp, offset / n);
 	    }
   /***********************************/
   /*** END OF MAIN LOOP **************/
