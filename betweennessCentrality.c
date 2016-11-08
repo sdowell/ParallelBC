@@ -22,6 +22,7 @@ int getArr(int *bmp){
 	}
 	//unlock
 	pthread_mutex_unlock(&arr_mutex);
+	fprintf(stderr, "unexpected: could not find available index in bmp\n");
 	return -1;
 }
 
@@ -49,7 +50,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   int i, x, p;
   int numV, num_traversals, n, m;
 
-	
+  fprintf(stderr, "Initializing mutexes\n");	
   if (pthread_mutex_init(&arr_mutex, NULL) != 0)
   {
     printf("\n mutex init failed\n");
@@ -68,12 +69,12 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
       return 1;
     }
   }
+  fprintf(stderr, "Done initializing mutexes\n");
   /* numV: no. of vertices to run BFS from = 2^K4approx */
   //numV = 1<<K4approx;
   n = G->nv;
   m = G->ne;
   numV = n;
-
   /* Permute vertices */
   Srcs = (int *) malloc(n*sizeof(int));
   for (i=0; i<n; i++) {
@@ -82,7 +83,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 
   /* Start timing code from here */
   elapsed_time = get_seconds();
-
+  fprintf(stderr, "Initializing predecessor list\n");
   /* Initialize predecessor lists */
   /* Number of predecessors of a vertex is at most its in-degree. */
   P0 = (plist *) calloc(MAX_THREADS *n, sizeof(plist));
@@ -106,7 +107,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   }
   free(in_degree);
   free(numEdges);
-	
+  fprintf(stderr, "allocating shared memory\n");	
   /* Allocate shared memory */ 
   S0   = (int *) malloc(MAX_THREADS *n*sizeof(int));
   sig0 = (double *) malloc(MAX_THREADS *n*sizeof(double));
@@ -125,7 +126,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   for (i=0; i<n * MAX_THREADS; i++) {
     d0[i] = -1;
   }
-	
+  fprintf(stderr, "Starting main loop\n");	
   /***********************************/
   /*** MAIN LOOP *********************/
   /***********************************/
@@ -141,6 +142,8 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 	  	int i, j, k, myCount, count, phase_num, w, v;
 		i = Srcs[p];
 		if (G->firstnbr[i+1] - G->firstnbr[i] == 0) {
+			fprintf(stderr, "Vertex has no neighbors\n");
+			releaseArr(bmp, offset / n);
 			continue;
 		}
 
@@ -148,6 +151,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 		num_traversals++;
 		if (num_traversals == numV + 1) {
 			pthread_mutex_unlock(&trav_mutex);
+			releaseArr(bmp, offset / n);
 			printf("exceeded numV\n");
 			continue;
 		}
