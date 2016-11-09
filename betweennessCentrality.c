@@ -5,15 +5,15 @@
 #include <pthread.h>
 
 #define MAX_THREADS 48
-
+//int MAX_THREADS = 48;
 pthread_mutex_t arr_mutex;
 pthread_mutex_t trav_mutex;
 
-int getArr(int *bmp){
+int getArr(int *bmp, int size){
 	int i = 0;
 	//lock
 	pthread_mutex_lock(&arr_mutex);
-	for(i = 0; i < MAX_THREADS; i++){
+	for(i = 0; i < size; i++){
 		if (bmp[i] == 0){
 			bmp[i] = 1;
 			//unlock
@@ -51,7 +51,8 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   int i, x, p;
   int numV, num_traversals, n, m;
 
-  
+//  int MAX_THREADS = 48;//__cilkrts_get_nworkers();
+//  fprintf(stderr, "Number of threads: %d\n", MAX_THREADS);
 
 
   fprintf(stderr, "Initializing mutexes\n");	
@@ -111,7 +112,7 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   }
   free(in_degree);
   free(numEdges);
-  fprintf(stderr, "allocating shared memory\n");	
+  fprintf(stderr, "allocating shared memory for %d threads\n", MAX_THREADS);	
   /* Allocate shared memory */ 
   S0   = (int *) malloc(MAX_THREADS *n*sizeof(int));
   sig0 = (double *) malloc(MAX_THREADS *n*sizeof(double));
@@ -136,8 +137,11 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
   /***********************************/
   cilk_for (p=0; p<n; p++) {
 		//fprintf(stderr, "Cilk thread: %d\n", __cilkrts_get_worker_number());
-		//int offset = getArr(bmp) * n;
-		int offset = __cilkrts_get_worker_number() * n;
+		//int offset = getArr(bmp, MAX_THREADS) * n;
+		int worker = __cilkrts_get_worker_number();
+		if(worker < 0 || worker >= MAX_THREADS)
+			fprintf(stderr, "Unexpected: worker number out of bounds\n");
+		int offset = worker * n;
 		int *S = &S0[offset]; 	/* stack of vertices in order of distance from s. Also, implicitly, the BFS queue */
 	  	plist* P = &P0[offset];  	/* predecessors of vertex v on shortest paths from s */
   		double* sig = &sig0[offset]; 	/* No. of shortest paths */
@@ -152,8 +156,8 @@ double betweennessCentrality_parallel(graph* G, double* BC) {
 			//releaseArr(bmp, offset / n);
 			continue;
 		}
-/*
-		pthread_mutex_lock(&trav_mutex);
+
+/*		pthread_mutex_lock(&trav_mutex);
 		num_traversals++;
 		if (num_traversals == numV + 1) {
 			pthread_mutex_unlock(&trav_mutex);
